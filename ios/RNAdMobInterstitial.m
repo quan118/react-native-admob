@@ -22,6 +22,7 @@ static NSString *const kEventAdLeftApplication = @"interstitialAdLeftApplication
     RCTPromiseResolveBlock _requestAdResolve;
     RCTPromiseRejectBlock _requestAdReject;
     BOOL hasListeners;
+    BOOL _failedToLoad;
 }
 
 - (dispatch_queue_t)methodQueue
@@ -64,7 +65,7 @@ RCT_EXPORT_METHOD(requestAd:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromise
     _requestAdResolve = nil;
     _requestAdReject = nil;
 
-    if ([_interstitial hasBeenUsed] || _interstitial == nil) {
+    if ([_interstitial hasBeenUsed] || _interstitial == nil || _failedToLoad) {
         _requestAdResolve = resolve;
         _requestAdReject = reject;
 
@@ -74,6 +75,7 @@ RCT_EXPORT_METHOD(requestAd:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromise
         GADRequest *request = [GADRequest request];
         request.testDevices = _testDevices;
         [_interstitial loadRequest:request];
+        _failedToLoad = NO;
     } else {
         reject(@"E_AD_ALREADY_LOADED", @"Ad is already loaded.", nil);
     }
@@ -122,6 +124,7 @@ RCT_EXPORT_METHOD(isReady:(RCTResponseSenderBlock)callback)
         [self sendEventWithName:kEventAdFailedToLoad body:jsError];
     }
     _requestAdReject(@"E_AD_REQUEST_FAILED", error.localizedDescription, error);
+    _failedToLoad = YES;
 }
 
 - (void)interstitialWillPresentScreen:(__unused GADInterstitial *)ad
